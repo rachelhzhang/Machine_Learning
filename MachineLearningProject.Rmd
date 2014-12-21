@@ -1,0 +1,69 @@
+---
+title: "MachineLearningProject"
+author: "Rachel Zhang"
+date: "Sunday, December 21, 2014"
+output: html_document
+---
+In this project, I build a model using the Weight Lifting Exercise Dataset to predict the manner in which participants performed various exercises ("classe" variable).  I used random forest to create a prediction model because random forest usually yields high-accuracy models, and all other machine learning methods in the caret package took too long (>1 hour) to run.
+
+Because the randomForest function performs cross validation, I did not have to perform cross validation separately from the model building.  As seen below, the model yields an out-of-bag estimate of error rate of 0.06%.
+
+Load library and set seed
+```{r}
+library(randomForest)
+set.seed(100)
+```
+
+Load data
+```{r cache = TRUE}
+training <- read.csv("~/training.csv", header = T)
+testing <- read.csv("~/testing.csv", header = T)
+```
+
+Preprocess data
+Goal: Remove variables that will obviously not be of predictive value, as well as variables that are missing values.
+```{r}
+#Separate out the classe variable of the training set
+classe <- training$classe
+
+#Last column of both training and testing may now be removed
+training <- training[,-ncol(training)]
+testing <- testing[,-ncol(testing)]
+
+#Subsequent factoring operations require same factor levels between training and testing sets, so we will first bind the two data sets together
+data <- rbind(training,testing)
+
+#Remove columns that contain NAs to reduce the number of predictors we consider in the model
+naCols <- which(colSums(is.na(data))!=0)
+data <- data[,-naCols]
+
+#The columns X, user_name, and cvtd_timestamp are not useful for prediction
+data <- data[ , -which(names(data) %in% c("X", "user_name", "cvtd_timestamp"))]
+
+#Change columns to class numeric, then make some columns factors again
+for (i in 1:length(data)) {
+    data[,i] <- as.numeric(data[,i])
+}
+
+x <- which(names(data) %in% c("new_window", "kurtosis_yaw_belt", "skewness_yaw_belt", "amplitude_yaw_belt", "skewness_yaw_dumbbell", "amplitude_yaw_dumbbell", "kurtosis_yaw_forearm", "skewness_yaw_forearm", "amplitude_yaw_forearm", "classe"))
+for (i in 1:length(x)) {
+    data[, x[i]] <- as.factor(data[,x[i]])
+}
+
+#Split the data into training and testing sets again
+training <- data[c(1:19622),]
+testing <- data[c(19623:19642),]
+
+training <- cbind(training, classe)
+```
+
+Build random forest model
+```{r}
+model <- randomForest(classe ~ ., data = training)
+model
+```
+
+Predict values for test set
+```{r}
+predictions <- predict(model, testing)
+```
