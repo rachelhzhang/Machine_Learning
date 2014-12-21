@@ -60,7 +60,7 @@ training <- cbind(training, classe)
 Build random forest model
 ```{r}
 model <- randomForest(classe ~ ., data = training)
-print(model)
+model
 ```
 
 Predict values for test set
